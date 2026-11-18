@@ -1,0 +1,25 @@
+node_modules/
+dist/
+build/
+coverage/
+.env
+.env.*
+!.env.example
+*.log
+.DS_Store
+.vscode/
+.idea/
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+crash.log
+
+# Lambdas empacotadas
+functions/**/*.zip
+
+# Texto do PR local (só lido pelo gh, nunca commitado)
+pr.md
