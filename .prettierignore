@@ -1,0 +1,7 @@
+node_modules
+dist
+build
+coverage
+package-lock.json
+api/openapi.json
+infra/.terraform
