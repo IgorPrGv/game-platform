@@ -20,3 +20,6 @@ crash.log
 
 # Lambdas empacotadas
 functions/**/*.zip
+
+# Texto do PR local (só lido pelo gh, nunca commitado)
+pr.md
