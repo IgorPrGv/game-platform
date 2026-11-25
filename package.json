@@ -9,7 +9,11 @@
     "prepare": "husky",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "commitlint": "commitlint"
+    "commitlint": "commitlint",
+    "local:up": "docker compose up -d --wait",
+    "local:down": "docker compose down",
+    "local:reset": "docker compose down -v",
+    "local:logs": "docker compose logs -f"
   },
   "devDependencies": {
     "@commitlint/cli": "21.2.4",

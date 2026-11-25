@@ -1,0 +1,100 @@
+# Ambiente local: emuladores dos serviços da AWS e o MongoDB.
+# Subir: npm run local:up   Parar: npm run local:down   Apagar os dados: npm run local:reset
+# Portas só em 127.0.0.1. Valores vêm do .env (ver .env.example), com padrões para uso local.
+
+name: game-platform
+
+services:
+  mongo:
+    image: mongo:8.0.38
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER:-root}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:-localdev}
+    ports:
+      - '127.0.0.1:${MONGO_PORT:-27017}:27017'
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test: ['CMD', 'mongosh', '--quiet', '--eval', "db.adminCommand('ping').ok"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+    restart: unless-stopped
+
+  s3:
+    image: chrislusf/seaweedfs:4.55
+    command: >
+      server -dir=/data -ip.bind=0.0.0.0 -volume.max=10
+      -master.volumeSizeLimitMB=128
+      -s3 -s3.port=8333 -s3.config=/etc/seaweedfs/s3.json
+    ports:
+      - '127.0.0.1:${S3_PORT:-8333}:8333'
+    volumes:
+      - s3-data:/data
+      - ./infra/local/seaweedfs-s3.json:/etc/seaweedfs/s3.json:ro
+    healthcheck:
+      test: ['CMD', 'wget', '-q', '-O', '/dev/null', 'http://127.0.0.1:8333/status']
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 10s
+    restart: unless-stopped
+
+  dynamodb:
+    image: amazon/dynamodb-local:3.3.2
+    command: -jar DynamoDBLocal.jar -sharedDb -dbPath /home/dynamodblocal/data
+    user: root
+    ports:
+      - '127.0.0.1:${DYNAMODB_PORT:-8000}:8000'
+    volumes:
+      - dynamodb-data:/home/dynamodblocal/data
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -s -o /dev/null http://127.0.0.1:8000 || exit 1']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 5s
+    restart: unless-stopped
+
+  sqs:
+    image: softwaremill/elasticmq-native:1.7.1
+    ports:
+      - '127.0.0.1:${SQS_PORT:-9324}:9324'
+    volumes:
+      - ./infra/local/elasticmq.conf:/opt/elasticmq.conf:ro
+    healthcheck:
+      test: ['CMD', 'wget', '-q', '-O', '/dev/null', 'http://127.0.0.1:9324/?Action=ListQueues']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 5s
+    restart: unless-stopped
+
+  # Cria o bucket, o CORS e a tabela; as filas vêm do elasticmq.conf. Roda uma vez e sai.
+  init:
+    image: amazon/aws-cli:2.42.3
+    entrypoint: ['bash', '/init/init-aws.sh']
+    environment:
+      AWS_ACCESS_KEY_ID: local
+      AWS_SECRET_ACCESS_KEY: local
+      AWS_DEFAULT_REGION: us-east-1
+      S3_BUCKET: ${S3_BUCKET:-app-data}
+      DYNAMODB_TABLE: ${DYNAMODB_TABLE:-offers}
+      SQS_QUEUE: ${SQS_QUEUE:-moderation-results}
+    volumes:
+      - ./infra/local/init-aws.sh:/init/init-aws.sh:ro
+      - ./infra/local/s3-cors.json:/init/s3-cors.json:ro
+    depends_on:
+      s3:
+        condition: service_healthy
+      dynamodb:
+        condition: service_healthy
+      sqs:
+        condition: service_healthy
+    restart: 'no'
+
+volumes:
+  mongo-data:
+  s3-data:
+  dynamodb-data:

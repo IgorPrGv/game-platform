@@ -233,6 +233,7 @@ Limite de 20 versões por jogo.
 | `steamRatingText`, `steamRatingPercent`, `steamRatingCount` | S, N, N | Campos de mesmo nome                                    |
 | `dealRating`                                                | N       | `dealRating`                                            |
 | `thumb`                                                     | S       | `thumb`                                                 |
+| `imageUrl`                                                  | S       | Montada a partir de `steamAppID` (ver seção 6.4)        |
 | `dealID`                                                    | S       | `dealID` (como veio, já codificado)                     |
 | `lastChange`                                                | N       | `lastChange` (epoch)                                    |
 | `runId`                                                     | S       | Identificador da execução (instante em epoch)           |
@@ -269,7 +270,7 @@ Total: 38 rotas (37 sob `/api/v1` e `GET /api/health`).
 | `PublicProfile` | `username`, `displayName`, `bio`, `avatarUrl?`, `games` (lista de `GameCard`, só se tiver papel `dev`)                                                                                                                                                                                                  |
 | `Media`         | `id`, `purpose`, `status`, `url?`, `thumbUrl?`, `reason?`                                                                                                                                                                                                                                               |
 | `UploadTicket`  | `mediaId` ou `versionId`, `upload: { url, fields }`, `expiresAt` (seção 5)                                                                                                                                                                                                                              |
-| `Offer`         | `steamAppID`, `title`, `currency` (`USD`), `salePrice`, `normalPrice`, `savingsPercent`, `metacriticScore?`, `steamRating { text, percent, count }`, `dealRating`, `thumbUrl`, `storeUrl`, `lastChange`                                                                                                 |
+| `Offer`         | `steamAppID`, `title`, `currency` (`USD`), `salePrice`, `normalPrice`, `savingsPercent`, `metacriticScore?`, `steamRating { text, percent, count }`, `dealRating`, `imageUrl`, `thumbUrl`, `storeUrl`, `lastChange`                                                                                     |
 | `OffersPage`    | `Page<Offer>` mais `updatedAt` (da última execução) e `attribution` (`"Dados: CheapShark"`)                                                                                                                                                                                                             |
 | `GameCard`      | `id`, `title`, `genre`, `coverUrl?`, `thumbUrl?`, `devUsername`, `downloadCount`, `likes`                                                                                                                                                                                                               |
 | `Game`          | `id`, `title`, `description`, `genre`, `coverUrl?`, `imageUrls[]`, `dev { username, displayName, avatarUrl? }`, `currentVersion? { id, label, notes, sizeBytes, createdAt }`, `downloadCount`, `likes`, `dislikes`, `commentCount`, `createdAt`, `publishedAt?`; para o dono: `status`, `rejectReason?` |
@@ -454,6 +455,7 @@ Uma tarefa periódica da API marca como `rejected`, com `reason: unavailable`, t
 - **Entrada:** evento agendado do EventBridge ou invocação manual (`{ "trigger": "manual" }`).
 - **Consulta à CheapShark:** `GET /api/1.0/deals?storeID=1&pageSize=30&sortBy=Deal Rating&onSale=1`, com `User-Agent` do projeto.
 - **Descartes:** itens sem `steamAppID`.
+- **Imagem:** `imageUrl` = `https://cdn.cloudflare.steamstatic.com/steam/apps/{steamAppID}/header.jpg` (460 × 215). A CheapShark só fornece a miniatura `thumb`, que fica como reserva: o web exibe `thumbUrl` se `imageUrl` falhar ao carregar. A CheapShark não fornece descrição nem gênero.
 - **Saída:** `raw/offers/...json` (corpo cru), itens do DynamoDB (seção 3.8) e o ponteiro atualizado **por último**.
 - **Registro:** um log JSON com `runId`, itens lidos, itens gravados e duração.
 
